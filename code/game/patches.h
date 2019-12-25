@@ -32,17 +32,17 @@ OTHER DEALINGS IN THE SOFTWARE.
 internal char ini_storage[INI_STORAGE_SIZE];
 
 struct PatchHealth {
-  int iMax;
-  int iRegenAmount;
-  int iRegenInitialDelay;
-  int iRegenRate;
+  r32 fMax;
+  r32 fRegenAmount;
+  r32 fRegenInitialDelay;
+  r32 fRegenRate;
 };
 
 struct PatchMana {
-  int iMax;
-  int iRegenAmount;
-  int iRegenInitialDelay;
-  int iRegenStepTime;
+  r32 fMax;
+  r32 fRegenAmount;
+  r32 fRegenInitialDelay;
+  r32 fRegenStepTime;
 };
 
 struct PatchSettings {

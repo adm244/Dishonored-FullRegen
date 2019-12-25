@@ -28,7 +28,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _DISHONORED_H_
 #define _DISHONORED_H_
 
-struct Attribute;
 struct DishonoredPlayerPawn;
 
 //------------- Static pointers -------------//
@@ -45,11 +44,6 @@ STATIC_POINTER(u32, Attribute_ManaRegenAmount_ID);
 STATIC_POINTER(u32, Attribute_ManaRegenInitialDelay_ID);
 STATIC_POINTER(u32, Attribute_ManaRegenAdditivePortion_ID);
 STATIC_POINTER(u32, Attribute_ManaRegenStepTime_ID);
-
-//------------- Functions -------------//
-//DECLARE_MEMBER_FUNCTION(Attribute *, Attribute, GetAttributeByName, wchar_t *name, int, int);
-//
-//MEMBER_FUNCTION(Attribute, GetAttributeByName);
 
 //------------- Structures -------------//
 #pragma pack(4)

@@ -77,12 +77,8 @@ DEFINE_STATIC_POINTER(Attribute_ManaRegenInitialDelay_ID, 0x014517FC);
 DEFINE_STATIC_POINTER(Attribute_ManaRegenAdditivePortion_ID, 0x01451804);
 DEFINE_STATIC_POINTER(Attribute_ManaRegenStepTime_ID, 0x0145180C);
 
-//DEFINE_MEMBER_FUNCTION(Attribute, GetAttributeByName, 0x004549C0);
-
 //------------- FullRegen.cpp -------------//
-//DEFINE_STATIC_POINTER(detour_attributes_init, 0x009EA355);
 DEFINE_STATIC_POINTER(detour_disattributesentry_init, 0x00C88210);
-
 DEFINE_STATIC_POINTER(hook_disattributesentry_init_ret, 0x00C88216);
 
 #endif

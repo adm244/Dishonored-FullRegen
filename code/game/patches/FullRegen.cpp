@@ -30,39 +30,31 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 struct AttributeReplacer {
   u32 *id;
-  int *value;
+  r32 *value;
   bool *enabled;
 };
 
-//------------- Enumerables -------------//
-
-
 //------------- Static pointers -------------//
-//STATIC_POINTER(void, detour_attributes_init);
 STATIC_POINTER(void, detour_disattributesentry_init);
-
 STATIC_POINTER(void, hook_disattributesentry_init_ret);
 
 //------------- Static variables -------------//
 internal AttributeReplacer attributeReplacers[] = {
-  { Attribute_HealthMax_ID, &patchSettings.health.iMax, &patchSettings.bHealthRegen },
-  { Attribute_HealthRegenAmount_ID, &patchSettings.health.iRegenAmount, &patchSettings.bHealthRegen },
-  { Attribute_HealthRegenInitialDelay_ID, &patchSettings.health.iRegenInitialDelay, &patchSettings.bHealthRegen },
-  { Attribute_HealthRegenRate_ID, &patchSettings.health.iRegenRate, &patchSettings.bHealthRegen },
+  { Attribute_HealthMax_ID, &patchSettings.health.fMax, &patchSettings.bHealthRegen },
+  { Attribute_HealthRegenAmount_ID, &patchSettings.health.fRegenAmount, &patchSettings.bHealthRegen },
+  { Attribute_HealthRegenInitialDelay_ID, &patchSettings.health.fRegenInitialDelay, &patchSettings.bHealthRegen },
+  { Attribute_HealthRegenRate_ID, &patchSettings.health.fRegenRate, &patchSettings.bHealthRegen },
   
-  { Attribute_ManaMax_ID, &patchSettings.mana.iMax, &patchSettings.bManaRegen },
-  { Attribute_ManaRegenAmount_ID, &patchSettings.mana.iRegenAmount, &patchSettings.bManaRegen },
-  { Attribute_ManaRegenInitialDelay_ID, &patchSettings.mana.iRegenInitialDelay, &patchSettings.bManaRegen },
-  { Attribute_ManaRegenStepTime_ID, &patchSettings.mana.iRegenStepTime, &patchSettings.bManaRegen },
+  { Attribute_ManaMax_ID, &patchSettings.mana.fMax, &patchSettings.bManaRegen },
+  { Attribute_ManaRegenAmount_ID, &patchSettings.mana.fRegenAmount, &patchSettings.bManaRegen },
+  { Attribute_ManaRegenInitialDelay_ID, &patchSettings.mana.fRegenInitialDelay, &patchSettings.bManaRegen },
+  { Attribute_ManaRegenStepTime_ID, &patchSettings.mana.fRegenStepTime, &patchSettings.bManaRegen },
 };
 
 internal bool gInitialized = false;
 
 //------------- Functions -------------//
-
-
-//------------- Detours -------------//
-internal CDECL void Detour_Attributes_Init()
+internal void SwapLimitAttributes()
 {
   if (patchSettings.bHealthRegen) {
     *Attribute_HealthRegenLimit_ID = *Attribute_HealthMax_ID;
@@ -73,17 +65,18 @@ internal CDECL void Detour_Attributes_Init()
   }
 }
 
+//------------- Detours -------------//
 internal CDECL void Detour_DisAttributesEntry_Init(DisAttributesEntry *entry, Attribute **attribute)
 {
   if (!gInitialized) {
-    Detour_Attributes_Init();
+    SwapLimitAttributes();
     gInitialized = true;
   }
   
   Attribute *attr = *attribute;
   for (int i = 0; i < arraysize(attributeReplacers); ++i) {
     u32 id = *attributeReplacers[i].id;
-    int value = *attributeReplacers[i].value;
+    r32 value = *attributeReplacers[i].value;
     bool enabled = *attributeReplacers[i].enabled;
     
     if (attr->id == id) {
@@ -95,14 +88,6 @@ internal CDECL void Detour_DisAttributesEntry_Init(DisAttributesEntry *entry, At
 }
 
 //------------- Hooks -------------//
-//internal NAKED void Attributes_Init_Hook()
-//{
-//  __asm {
-//    call Detour_Attributes_Init
-//    ret
-//  }
-//}
-
 internal NAKED void DisAttributesEntry_Init_Hook()
 {
   __asm {
@@ -127,8 +112,6 @@ internal NAKED void DisAttributesEntry_Init_Hook()
 internal bool InitFullRegen()
 {
   if (patchSettings.bHealthRegen || patchSettings.bManaRegen) {
-    //if (!WriteDetour(detour_attributes_init, Attributes_Init_Hook, 0))
-    //  return false;
     if (!WriteDetour(detour_disattributesentry_init, DisAttributesEntry_Init_Hook, 1))
       return false;
   }
@@ -139,16 +122,16 @@ internal bool InitFullRegen()
 internal void InitFullRegenConfig()
 {
   patchSettings.bHealthRegen = ini_read_bool(0, "bHealthRegen", true);
-  patchSettings.health.iMax = ini_read_int(SETTINGS_HEALTH, "iMax", -1);
-  patchSettings.health.iRegenAmount = ini_read_int(SETTINGS_HEALTH, "iRegenAmount", -1);
-  patchSettings.health.iRegenInitialDelay = ini_read_int(SETTINGS_HEALTH, "iRegenInitialDelay", -1);
-  patchSettings.health.iRegenRate = ini_read_int(SETTINGS_HEALTH, "iRegenRate", -1);
+  patchSettings.health.fMax = ini_read_float(SETTINGS_HEALTH, "fMax", -1.0f);
+  patchSettings.health.fRegenAmount = ini_read_float(SETTINGS_HEALTH, "fRegenAmount", -1.0f);
+  patchSettings.health.fRegenInitialDelay = ini_read_float(SETTINGS_HEALTH, "fRegenInitialDelay", -1.0f);
+  patchSettings.health.fRegenRate = ini_read_float(SETTINGS_HEALTH, "fRegenRate", -1.0f);
   
   patchSettings.bManaRegen = ini_read_bool(0, "bManaRegen", true);
-  patchSettings.mana.iMax = ini_read_int(SETTINGS_MANA, "iMax", -1);
-  patchSettings.mana.iRegenAmount = ini_read_int(SETTINGS_MANA, "iRegenAmount", -1);
-  patchSettings.mana.iRegenInitialDelay = ini_read_int(SETTINGS_MANA, "iRegenInitialDelay", -1);
-  patchSettings.mana.iRegenStepTime = ini_read_int(SETTINGS_MANA, "iRegenStepTime", -1);
+  patchSettings.mana.fMax = ini_read_float(SETTINGS_MANA, "fMax", -1.0f);
+  patchSettings.mana.fRegenAmount = ini_read_float(SETTINGS_MANA, "fRegenAmount", -1.0f);
+  patchSettings.mana.fRegenInitialDelay = ini_read_float(SETTINGS_MANA, "fRegenInitialDelay", -1.0f);
+  patchSettings.mana.fRegenStepTime = ini_read_float(SETTINGS_MANA, "fRegenStepTime", -1.0f);
 }
 
 #endif
