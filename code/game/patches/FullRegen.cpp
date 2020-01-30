@@ -54,7 +54,7 @@ internal AttributeReplacer attributeReplacers[] = {
 internal bool gInitialized = false;
 
 //------------- Functions -------------//
-internal void SwapLimitAttributes()
+internal void ChangeLimitAttributes()
 {
   if (patchSettings.bHealthRegen) {
     *Attribute_HealthRegenLimit_ID = *Attribute_HealthMax_ID;
@@ -69,7 +69,7 @@ internal void SwapLimitAttributes()
 internal CDECL void Detour_DisAttributesEntry_Init(DisAttributesEntry *entry, Attribute **attribute)
 {
   if (!gInitialized) {
-    SwapLimitAttributes();
+    ChangeLimitAttributes();
     gInitialized = true;
   }
   
