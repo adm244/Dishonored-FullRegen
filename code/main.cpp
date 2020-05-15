@@ -40,6 +40,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #endif
 
 #include "types.h"
+#include "logfile.h"
 #include "detours.cpp"
 #include "ini_parser.h"
 
@@ -49,14 +50,26 @@ internal HMODULE thisModule = 0;
 #include "game\types.h"
 #include "game\patches.h"
 
-internal bool Initialize()
+internal bool Initialize(HMODULE module)
 {
+  if (!InitLogFile(module, false)) {
+    OutputDebugStringA("Initialize: Couldn't initialize a logfile.");
+    return false;
+  }
+  
+  Log(LogInfo, "--- Initialization ---");
+  
   if (!InitPatches()) {
-    OutputDebugStringA("Initialize: Couldn't initialize patches.");
+    Log(LogError, "Initialize: Couldn't initialize patches.");
     return false;
   }
   
   return true;
+}
+
+internal void Deinitialize()
+{
+  DeinitLogFile();
 }
 
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
@@ -64,9 +77,14 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
   thisModule = (HMODULE)instance;
   
   if (reason == DLL_PROCESS_ATTACH) {
-    if (!Initialize()) {
+    if (!Initialize(thisModule)) {
+      Log(LogError, "FATAL: Initialization failed!");
       return FALSE;
     }
+    Log(LogInfo, "--- Initialized successefully ---");
+  } else if (reason == DLL_PROCESS_DETACH) {
+    Log(LogInfo, "--- Deinitialization ---\n");
+    Deinitialize();
   }
   
   return TRUE;

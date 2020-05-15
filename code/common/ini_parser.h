@@ -52,7 +52,7 @@ OTHER DEALINGS IN THE SOFTWARE.
     - Empty (global) section is supported
     - Section name is considered to be a string enclosed in DOUBLE_QUOTE ('"')
     - Key is one word only
-    - Value can be INT, BOOL, STRING (char *) or WSTRING (wchar_t *)
+    - Value can be INT, FLOAT, BOOL, STRING (char *) or WSTRING (wchar_t *)
     - WSTRING is assumed to be in UTF-8 encoding
     - Hexadecimal\octal\binary format of INT is NOT supported
     - Escaped characters (\t, \n, \x, etc.) are NOT supported
@@ -194,6 +194,7 @@ internal void * arena_push(arena_t *arena, void *data, size_t size)
   
   size_t free_space = ((char *)arena->end - arena->cur);
   if (free_space < size) {
+    Log(LogWarning, "arena_push: no free space left, push is ignored.");
     return 0;
   }
   
@@ -255,6 +256,7 @@ internal void ini_store_keyvalue(char *key, ini_value_t *value)
     
     default: {
       entry.value.type = INI_VALUE_GARBAGE;
+      Log(LogWarning, "ini_store_keyvalue: unknown value type detected, ignoring...");
     } break;
   }
   
@@ -268,14 +270,14 @@ internal bool ini_parse_read_file(char *buffer, size_t size)
   HANDLE file = CreateFileA(ini_settings.filepath, GENERIC_READ, FILE_SHARE_READ, 0,
     OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
   if (file == INVALID_HANDLE_VALUE) {
-    printf("Error: Cannot open file!\n");
+    Log(LogError, "Error: Cannot open file: %s", ini_settings.filepath);
     return false;
   }
   
   DWORD sizeRead;
   BOOL result = ReadFile(file, buffer, size, &sizeRead, 0);
   if (!result) {
-    printf("Error: Cannot read file!\n");
+    Log(LogError, "Error: Cannot read file: %s", ini_settings.filepath);
     return false;
   }
   
@@ -531,23 +533,38 @@ internal bool ini_parse_keyvalue_value(char *buffer, char *dest, size_t size)
 internal bool ini_convert_utf8_to_utf16(char *src, wchar_t *dest, size_t count)
 {
   if (!MultiByteToWideChar(CP_UTF8, 0, src, -1, dest, count)) {
+    Log(LogWarning, "ini_convert_utf8_to_utf16: convertion of \"%s\" failed.", src);
     return false;
   }
   
   return true;
 }
 
-internal bool has_decimal_point(char *buffer)
+internal bool is_float(char *buffer)
 {
+  bool result = false;
+  
   char *p = buffer;
-  while (*p != '\0') {
-    if (*p == '.') {
-      return true;
-    }
+  if (is_sign(*p)) {
     ++p;
   }
   
-  return false;
+  while (*p != '\0') {
+    if (*p == '.') {
+      if (result) {
+        return false;
+      }
+      result = true;
+    } else {
+      if (!is_number(*p)) {
+        return false;
+      }
+    }
+    
+    ++p;
+  }
+  
+  return result;
 }
 
 internal bool ini_parse_value(char *buffer, ini_value_t *value)
@@ -557,42 +574,7 @@ internal bool ini_parse_value(char *buffer, ini_value_t *value)
   
   value->type = INI_VALUE_GARBAGE;
   
-  if (has_decimal_point(buffer)) {
-    if (sscanf_s(buffer, "%f", &value->real) > 0) {
-      value->type = INI_VALUE_FLOAT;
-      return true;
-    }
-  }
-  
-  else if (is_number(buffer[0]) || is_sign(buffer[0])) {
-    char *p = is_sign(buffer[0]) ? buffer + 1 : buffer;
-    int number = 0;
-    
-    while (*p != '\0') {
-      if (!is_number(*p)) {
-        break;
-      }
-      
-      number *= 10;
-      number += (*p - '0');
-      
-      ++p;
-    }
-    
-    if (*p != '\0') {
-      return false;
-    }
-    
-    if (buffer[0] == '-') {
-      number = -number;
-    }
-    
-    value->type = INI_VALUE_INT;
-    value->number = number;
-    return true;
-  }
-  
-  else if ((buffer[0] == 't') || (buffer[0] == 'f')) {
+  if ((buffer[0] == 't') || (buffer[0] == 'f')) {
     if (strcmp(buffer, "true") == 0) {
       value->type = INI_VALUE_BOOL;
       value->boolean = true;
@@ -604,6 +586,9 @@ internal bool ini_parse_value(char *buffer, ini_value_t *value)
       value->boolean = false;
       return true;
     }
+    
+    Log(LogWarning, "ini_parse_value: failed to parse as boolean: %s", buffer);
+    return false;
   }
   
   else if (buffer[0] == '\"') {
@@ -638,11 +623,51 @@ internal bool ini_parse_value(char *buffer, ini_value_t *value)
     
     wchar_t *str_utf16 = (wchar_t *)buffer;
     if (!ini_convert_utf8_to_utf16(buffer_copy, str_utf16, INI_BUFFER_SIZE / 2)) {
+      Log(LogWarning, "ini_parse_value: failed to parse as wide-string: %s", buffer_copy);
       return false;
     }
     
     value->type = INI_VALUE_WSTRING;
     value->wstr = str_utf16;
+    return true;
+  }
+  
+  else if (is_float(buffer)) {
+    if (sscanf_s(buffer, "%f\0", &value->real) > 0) {
+      value->type = INI_VALUE_FLOAT;
+      return true;
+    }
+    
+    Log(LogWarning, "ini_parse_value: failed to parse as float: %s", buffer);
+    return false;
+  }
+  
+  else if (is_number(buffer[0]) || is_sign(buffer[0])) {
+    char *p = is_sign(buffer[0]) ? buffer + 1 : buffer;
+    int number = 0;
+    
+    while (*p != '\0') {
+      if (!is_number(*p)) {
+        break;
+      }
+      
+      number *= 10;
+      number += (*p - '0');
+      
+      ++p;
+    }
+    
+    if (*p != '\0') {
+      Log(LogWarning, "ini_parse_value: failed to parse as int: %s", buffer);
+      return false;
+    }
+    
+    if (buffer[0] == '-') {
+      number = -number;
+    }
+    
+    value->type = INI_VALUE_INT;
+    value->number = number;
     return true;
   }
   
@@ -655,16 +680,19 @@ internal bool ini_parse_keyvalue(char *buffer)
   
   char key[INI_KEY_LENGTH];
   if (!ini_parse_keyvalue_key(buffer, key, INI_KEY_LENGTH)) {
+    Log(LogWarning, "ini_parse_keyvalue: failed to parse a key string: %s", buffer);
     return false;
   }
   
   char value[INI_VALUE_LENGTH];
   if (!ini_parse_keyvalue_value(buffer, value, INI_VALUE_LENGTH)) {
+    Log(LogWarning, "ini_parse_keyvalue: failed to parse a value string: %s", buffer);
     return false;
   }
   
   ini_value_t value_typed;
   if (!ini_parse_value(value, &value_typed)) {
+    Log(LogWarning, "ini_parse_keyvalue: failed to parse a value: %s", buffer);
     return false;
   }
   
@@ -679,10 +707,12 @@ internal bool ini_parse_line(char *buffer)
   
   if (buffer[0] == '[') {
     if (!ini_parse_section(buffer)) {
+      Log(LogWarning, "ini_parse_line: failed to parse a section: %s", buffer);
       return false;
     }
   } else {
     if (!ini_parse_keyvalue(buffer)) {
+      Log(LogWarning, "ini_parse_line: failed to parse a key-value pair: %s", buffer);
       return false;
     }
   }
@@ -703,10 +733,11 @@ internal bool ini_parse_buffer(char *buffer, size_t size)
     line = ini_strip_comments(line);
     line = ini_strip_whitespace(line);
     
-    if (strlen(line) == 0)
+    if (line[0] == '\0')
       continue;
     
     if (!ini_parse_line(line)) {
+      Log(LogWarning, "ini_parse_buffer: failed to parse a line: %s", line);
       result = false;
       continue;
     }
@@ -740,6 +771,10 @@ internal ini_value_t * ini_get_value(char *section, char *key)
     }
   }
   
+  if (!value) {
+    Log(LogWarning, "ini_get_value: failed to find a value. section: %s, key: %s", section, key);
+  }
+  
   return value;
 }
 
@@ -770,13 +805,13 @@ internal bool ini_parse()
   char buffer[INI_BUFFER_SIZE];
   bool result = ini_parse_read_file(buffer, INI_BUFFER_SIZE);
   if (!result) {
-    //NOTE(adm244): cannot read file
+    Log(LogError, "ini_parse: could not read a file: %s", buffer);
     return false;
   }
   
   result = ini_parse_buffer(buffer, INI_BUFFER_SIZE);
   if (!result) {
-    //NOTE(adm244): some lines couldn't be parsed
+    Log(LogError, "ini_parse: could not read all of the lines.");
     return false;
   }
   
@@ -814,6 +849,10 @@ internal float ini_read_float(char *section, char *key, float default)
   
   if (value->type == INI_VALUE_FLOAT) {
     return value->real;
+  }
+  
+  if (value->type == INI_VALUE_INT) {
+    return (float)value->number;
   }
   
   return default;

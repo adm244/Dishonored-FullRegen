@@ -78,8 +78,9 @@ struct Attribute {
   u32 unk10;
   u32 unk14;
   r32 value; // 0x18
+  u32 unk20;
 };
-assert_size(Attribute, 0x1C);
+assert_size(Attribute, 0x20);
 
 #pragma pack(pop)
 

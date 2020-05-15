@@ -75,16 +75,19 @@ internal bool GetConfigFilePath(char *buffer, size_t size)
   return true;
 }
 
-internal bool ReadConfig()
+internal bool ReadConfigFile()
 {
   char filepath[MAX_PATH];
   if (!GetConfigFilePath(filepath, MAX_PATH)) {
-    OutputDebugStringA("ReadConfig: Cannot get filepath for a config.");
+    Log(LogWarning, "ReadConfig: Cannot get a filepath for a config file.");
     filepath[0] = '\0';
   }
   
   ini_init(filepath, ini_storage, INI_STORAGE_SIZE);
   bool result = ini_parse();
+  if (!result) {
+    Log(LogWarning, "ReadConfig: Couldn't read a config file. Using default settings.");
+  }
   
   InitFullRegenConfig();
   
@@ -93,12 +96,12 @@ internal bool ReadConfig()
 
 internal bool InitPatches()
 {
-  if (!ReadConfig()) {
-    OutputDebugStringA("InitPatches: Some issues reading config file.");
+  if (!ReadConfigFile()) {
+    Log(LogWarning, "InitPatches: Couldn't read a config file.");
   }
   
   if (!InitFullRegen()) {
-    OutputDebugStringA("InitPatches: Couldn't initialize FullRegen patch.");
+    Log(LogError, "InitPatches: Couldn't initialize FullRegen patch.");
     return false;
   }
   

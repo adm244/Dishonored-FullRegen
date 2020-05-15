@@ -29,6 +29,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define _PATCH_FULLREGEN_CPP_
 
 struct AttributeReplacer {
+  char *name;
   u32 *id;
   r32 *value;
   bool *enabled;
@@ -40,15 +41,15 @@ STATIC_POINTER(void, hook_disattributesentry_init_ret);
 
 //------------- Static variables -------------//
 internal AttributeReplacer attributeReplacers[] = {
-  { Attribute_HealthMax_ID, &patchSettings.health.fMax, &patchSettings.bHealthRegen },
-  { Attribute_HealthRegenAmount_ID, &patchSettings.health.fRegenAmount, &patchSettings.bHealthRegen },
-  { Attribute_HealthRegenInitialDelay_ID, &patchSettings.health.fRegenInitialDelay, &patchSettings.bHealthRegen },
-  { Attribute_HealthRegenRate_ID, &patchSettings.health.fRegenRate, &patchSettings.bHealthRegen },
+  { "HealthMax", Attribute_HealthMax_ID, &patchSettings.health.fMax, &patchSettings.bHealthRegen },
+  { "HealthRegenAmount", Attribute_HealthRegenAmount_ID, &patchSettings.health.fRegenAmount, &patchSettings.bHealthRegen },
+  { "HealthRegenInitialDelay", Attribute_HealthRegenInitialDelay_ID, &patchSettings.health.fRegenInitialDelay, &patchSettings.bHealthRegen },
+  { "HealthRegenRate", Attribute_HealthRegenRate_ID, &patchSettings.health.fRegenRate, &patchSettings.bHealthRegen },
   
-  { Attribute_ManaMax_ID, &patchSettings.mana.fMax, &patchSettings.bManaRegen },
-  { Attribute_ManaRegenAmount_ID, &patchSettings.mana.fRegenAmount, &patchSettings.bManaRegen },
-  { Attribute_ManaRegenInitialDelay_ID, &patchSettings.mana.fRegenInitialDelay, &patchSettings.bManaRegen },
-  { Attribute_ManaRegenStepTime_ID, &patchSettings.mana.fRegenStepTime, &patchSettings.bManaRegen },
+  { "ManaMax", Attribute_ManaMax_ID, &patchSettings.mana.fMax, &patchSettings.bManaRegen },
+  { "ManaRegenAmount", Attribute_ManaRegenAmount_ID, &patchSettings.mana.fRegenAmount, &patchSettings.bManaRegen },
+  { "ManaRegenInitialDelay", Attribute_ManaRegenInitialDelay_ID, &patchSettings.mana.fRegenInitialDelay, &patchSettings.bManaRegen },
+  { "ManaRegenStepTime", Attribute_ManaRegenStepTime_ID, &patchSettings.mana.fRegenStepTime, &patchSettings.bManaRegen },
 };
 
 internal bool gInitialized = false;
@@ -58,12 +59,33 @@ internal void ChangeLimitAttributes()
 {
   if (patchSettings.bHealthRegen) {
     *Attribute_HealthRegenLimit_ID = *Attribute_HealthMax_ID;
+    Log(LogInfo, "Health regeneration limit is set to health maximum value.");
   }
   
   if (patchSettings.bManaRegen) {
     *Attribute_ManaRegenAdditivePortion_ID = *Attribute_ManaMax_ID;
+    Log(LogInfo, "Mana regeneration portion is set to mana maximum value.");
   }
 }
+
+//struct AttributeInfo {
+//  u32 unk00;
+//  u32 unk04;
+//  u32 cookedId; // 0x08
+//  AttributeInfo *next;
+//  char str[0];
+//};
+//
+//internal u32 GetUncookedID(AttributeInfo *attributeInfo)
+//{
+//  u32 cookedID = attributeInfo->cookedId;
+//  
+//  //if (attributeInfo->cookedId & 1) {
+//  //  IsUnicodeString(attributeInfo->str)
+//  //}
+//  
+//  return ((attributeInfo->cookedId & (~1)) / 2);
+//}
 
 //------------- Detours -------------//
 internal CDECL void Detour_DisAttributesEntry_Init(DisAttributesEntry *entry, Attribute **attribute)
@@ -71,10 +93,33 @@ internal CDECL void Detour_DisAttributesEntry_Init(DisAttributesEntry *entry, At
   if (!gInitialized) {
     ChangeLimitAttributes();
     gInitialized = true;
+    
+    //DEBUG: dump all attributes
+    // from 0x013AA038 to 0x013EA034
+    //FILE *logFile = fopen("fullregen.log", "w");
+    //assert(logFile != 0);
+    //
+    //AttributeInfo **attributesHashtable = (AttributeInfo **)0x013AA038;
+    //for (int i = 0; i < 65535; ++i) {
+    //  if (attributesHashtable[i] == 0)
+    //    continue;
+    //  
+    //  AttributeInfo *attributeInfo = attributesHashtable[i];
+    //  fprintf(logFile, "%ID: %i, Name: %s\n", GetUncookedID(attributeInfo), attributeInfo->str);
+    //  
+    //  attributeInfo = attributeInfo->next;
+    //  while (attributeInfo) {
+    //    fprintf(logFile, "%ID: %i, Name: %s\n", GetUncookedID(attributeInfo), attributeInfo->str);
+    //    attributeInfo = attributeInfo->next;
+    //  }
+    //}
+    //
+    //fclose(logFile);
   }
   
   Attribute *attr = *attribute;
   for (int i = 0; i < arraysize(attributeReplacers); ++i) {
+    char *name = attributeReplacers[i].name;
     u32 id = *attributeReplacers[i].id;
     r32 value = *attributeReplacers[i].value;
     bool enabled = *attributeReplacers[i].enabled;
@@ -82,6 +127,7 @@ internal CDECL void Detour_DisAttributesEntry_Init(DisAttributesEntry *entry, At
     if (attr->id == id) {
       if (enabled && (value >= 0)) {
         attr->value = value;
+        Log(LogInfo, "Name: %s,\tID: %d,\tChanged to: %f", name, attr->id, value);
       }
     }
   }
@@ -112,8 +158,9 @@ internal NAKED void DisAttributesEntry_Init_Hook()
 internal bool InitFullRegen()
 {
   if (patchSettings.bHealthRegen || patchSettings.bManaRegen) {
-    if (!WriteDetour(detour_disattributesentry_init, DisAttributesEntry_Init_Hook, 1))
+    if (!WriteDetour(detour_disattributesentry_init, DisAttributesEntry_Init_Hook, 1)) {
       return false;
+    }
   }
   
   return true;
@@ -132,6 +179,18 @@ internal void InitFullRegenConfig()
   patchSettings.mana.fRegenAmount = ini_read_float(SETTINGS_MANA, "fRegenAmount", -1.0f);
   patchSettings.mana.fRegenInitialDelay = ini_read_float(SETTINGS_MANA, "fRegenInitialDelay", -1.0f);
   patchSettings.mana.fRegenStepTime = ini_read_float(SETTINGS_MANA, "fRegenStepTime", -1.0f);
+  
+  Log(LogInfo, "Health: bHealthRegen = %s", patchSettings.bHealthRegen ? "true" : "false");
+  Log(LogInfo, "Health: fMax = %f", patchSettings.health.fMax);
+  Log(LogInfo, "Health: fRegenAmount = %f", patchSettings.health.fRegenAmount);
+  Log(LogInfo, "Health: fRegenInitialDelay = %f", patchSettings.health.fRegenInitialDelay);
+  Log(LogInfo, "Health: fRegenRate = %f", patchSettings.health.fRegenRate);
+  
+  Log(LogInfo, "Mana: bManaRegen = %s", patchSettings.bManaRegen ? "true" : "false");
+  Log(LogInfo, "Mana: fMax = %f", patchSettings.mana.fMax);
+  Log(LogInfo, "Mana: fRegenAmount = %f", patchSettings.mana.fRegenAmount);
+  Log(LogInfo, "Mana: fRegenInitialDelay = %f", patchSettings.mana.fRegenInitialDelay);
+  Log(LogInfo, "Mana: fRegenStepTime = %f", patchSettings.mana.fRegenStepTime);
 }
 
 #endif
