@@ -126,7 +126,11 @@ internal CDECL void Detour_DisAttributesEntry_Init(DisAttributesEntry *entry, At
     
     if (attr->id == id) {
       if (enabled && (value >= 0)) {
-        attr->value = value;
+        attr->easy = value;
+        attr->normal = value;
+        attr->hard = value;
+        attr->veryhard = value;
+        
         Log(LogInfo, "Name: %s,\tID: %d,\tChanged to: %f", name, attr->id, value);
       }
     }

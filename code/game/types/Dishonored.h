@@ -71,16 +71,14 @@ struct DisAttributesEntry {
 assert_size(DisAttributesEntry, 0x20);
 
 struct Attribute {
-  u32 id;
+  u32 id; // 0x00
   u32 unk04;
-  u32 unk08;
-  u32 unk0C;
-  u32 unk10;
-  u32 unk14;
-  r32 value; // 0x18
-  u32 unk20;
-};
-assert_size(Attribute, 0x20);
+  u32 flags; // 0x08
+  r32 easy; // 0x0C
+  r32 normal; // 0x10
+  r32 hard; // 0x14
+  r32 veryhard; // 0x18
+}; assert_size(Attribute, 0x1C);
 
 #pragma pack(pop)
 
