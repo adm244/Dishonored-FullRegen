@@ -15,13 +15,14 @@ Compilation is done as a **single unit**, just compile **main.cpp** as 32-bit dl
 For more details see `tools/build.bat` file.
 
 ## Installation
-Check [NexusMods page](https://www.nexusmods.com/dishonored/mods/20) for details.
+Copy "dinput8.dll" and "NativeMods" folder into "Dishonored\Binaries\Win32".
 
 ## Supported versions
 Works on the latest version that is prepared for DLC **The Knife of Dunwall** and DLC **The Brigmore Witches**.
 These DLC's are **NOT** required though.
 
 ## Notes
+* If you're using GOG version do not launch game through Galaxy client (it's a known issue)
 * DLL injector is **NOT** included in this repository
 * No fool-proof checks, make sure you know what you're doing
 * No dynamic memory allocations
