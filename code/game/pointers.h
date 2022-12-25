@@ -63,22 +63,22 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define STDCALL_FUNCTION(func) CDECL_FUNCTION(func)
 
 //------------- Dishonored.h --------------//
-DEFINE_STATIC_POINTER(playerPawn, 0x01452DE8);
+DEFINE_STATIC_POINTER(playerPawn, 0x0145f628);
 
-DEFINE_STATIC_POINTER(Attribute_HealthMax_ID, 0x01451774);
-DEFINE_STATIC_POINTER(Attribute_HealthRegenAmount_ID, 0x01451784);
-DEFINE_STATIC_POINTER(Attribute_HealthRegenInitialDelay_ID, 0x0145178C);
-DEFINE_STATIC_POINTER(Attribute_HealthRegenLimit_ID, 0x01451794);
-DEFINE_STATIC_POINTER(Attribute_HealthRegenRate_ID, 0x0145179C);
+DEFINE_STATIC_POINTER(Attribute_HealthMax_ID, 0x0145dfb0);
+DEFINE_STATIC_POINTER(Attribute_HealthRegenAmount_ID, 0x0145dfc0);
+DEFINE_STATIC_POINTER(Attribute_HealthRegenInitialDelay_ID, 0x0145dfc8);
+DEFINE_STATIC_POINTER(Attribute_HealthRegenLimit_ID, 0x0145dfd0);
+DEFINE_STATIC_POINTER(Attribute_HealthRegenRate_ID, 0x0145dfd8);
 
-DEFINE_STATIC_POINTER(Attribute_ManaMax_ID, 0x014517E4);
-DEFINE_STATIC_POINTER(Attribute_ManaRegenAmount_ID, 0x014517F4);
-DEFINE_STATIC_POINTER(Attribute_ManaRegenInitialDelay_ID, 0x014517FC);
-DEFINE_STATIC_POINTER(Attribute_ManaRegenAdditivePortion_ID, 0x01451804);
-DEFINE_STATIC_POINTER(Attribute_ManaRegenStepTime_ID, 0x0145180C);
+DEFINE_STATIC_POINTER(Attribute_ManaMax_ID, 0x0145e020);
+DEFINE_STATIC_POINTER(Attribute_ManaRegenAmount_ID, 0x0145e030);
+DEFINE_STATIC_POINTER(Attribute_ManaRegenInitialDelay_ID, 0x0145e038);
+DEFINE_STATIC_POINTER(Attribute_ManaRegenAdditivePortion_ID, 0x0145e040);
+DEFINE_STATIC_POINTER(Attribute_ManaRegenStepTime_ID, 0x0145e048);
 
 //------------- FullRegen.cpp -------------//
-DEFINE_STATIC_POINTER(detour_disattributesentry_init, 0x00C88210);
-DEFINE_STATIC_POINTER(hook_disattributesentry_init_ret, 0x00C88216);
+DEFINE_STATIC_POINTER(detour_disattributesentry_init, 0x00c88850);
+DEFINE_STATIC_POINTER(hook_disattributesentry_init_ret, 0x00c88856);
 
 #endif
